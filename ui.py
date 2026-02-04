@@ -178,7 +178,7 @@ with tab1:
     industry_ok = bool(industry.strip())
     # ------------------ PREDICT BUTTON (SAFE) ------------------
     if not st.session_state.resume_ready:
-        st.info("📄 Upload a resume to enable salary prediction.")
+        st.info("📄 Upload a resume,company country, industry to enable salary prediction.")
 
     if st.session_state.resume_ready and company_ok and industry_ok:
         if st.button("🔮 Predict Salary", key="salary_btn"):
