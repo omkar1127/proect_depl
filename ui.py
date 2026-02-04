@@ -61,7 +61,7 @@ def load_job_data():
 
 @st.cache_resource
 def load_salary_model():
-    with open("salary_prediction_model.pkl", "rb") as f:
+    with open("salary_model.pkl", "rb") as f:
         return pickle.load(f)
 
 df = load_job_data()
