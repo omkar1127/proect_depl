@@ -56,7 +56,7 @@ st.markdown("""
 
 #------------------------
 # API & DATA INITIALIZATION
-#------------------------
+# ------------------------------------------
 API_KEY = os.getenv("GOOGLE_API_KEY")
 
 if not API_KEY:
