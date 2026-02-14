@@ -5,7 +5,8 @@ import numpy as np
 import pickle
 import json
 import os
-import google.generativeai as genai
+from langchain_huggingface import HuggingFaceEmbeddings
+#import google.generativeai as genai
 from google import genai as genai_v2 # Standardizing name for the client
 from google import genai
 from langchain_chroma import Chroma
@@ -15,9 +16,9 @@ from langchain_google_genai import (
 )
 from langchain_core.prompts import ChatPromptTemplate
 
-# ------------------------------------------
+#------------------------
 # 1. PAGE CONFIG & GLOBAL SETTINGS
-# ------------------------------------------
+#------------------------
 st.set_page_config(
     page_title="💼 Job Intelligence System",
     page_icon="🤖",
@@ -30,18 +31,18 @@ dark_mode = st.sidebar.toggle("🌙 Dark Mode", value=False)
 top_n = st.sidebar.number_input("Top N records for Map", min_value=1, max_value=100, value=10)
 plotly_template = "plotly_dark" if dark_mode else "plotly"
 
-# ------------------------------------------
+#------------------------
 # SESSION STATE INITIALIZATION  ✅ ADDED
-# ------------------------------------------
+#------------------------
 if "resume_ready" not in st.session_state:
     st.session_state.resume_ready = False
 
 if "resume_data" not in st.session_state:
     st.session_state.resume_data = {}
 
-# ------------------------------------------
+#------------------------
 # CUSTOM CSS
-# ------------------------------------------
+#------------------------
 st.markdown("""
 <style>
 .chat-box { padding: 14px; border-radius: 10px; margin-bottom: 10px; font-size: 15px; line-height: 1.6; }
@@ -53,17 +54,16 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# ------------------------------------------
+#------------------------
 # API & DATA INITIALIZATION
-# ------------------------------------------
-API_KEY = "AIzaSyBE1ancqe0xqUN4tzZwCekQaFP6War49Wo"
+#------------------------
+API_KEY = os.getenv("GOOGLE_API_KEY")
 
 if not API_KEY:
     st.error("Google API Key not found.")
     st.stop()
 
 client = genai_v2.Client(api_key=API_KEY)
-os.environ["GOOGLE_API_KEY"] = API_KEY
 
 @st.cache_data
 def load_job_data():
@@ -77,14 +77,9 @@ def load_salary_model():
 df = load_job_data()
 model = load_salary_model()
 
-# ------------------------------------------
-# TABS
-# ------------------------------------------
 tab1, tab2, tab3 = st.tabs(["📊 Predict Your Salary", "🤖 AI Powered Chatbot", "🌍 Global Search"])
 
-# ===================================================================================
 # TAB 1 — SALARY PREDICTION
-# ===================================================================================
 with tab1:
     st.markdown("<div class='big-title'>💼 Salary Prediction Assistant</div>", unsafe_allow_html=True)
 
@@ -109,7 +104,6 @@ with tab1:
 
     col1, col2 = st.columns(2)
 
-    # ------------------ JOB INFO ------------------
     with col1:
         st.markdown("<div class='section-header'>📌 Job Information</div>", unsafe_allow_html=True)
 
@@ -127,7 +121,7 @@ with tab1:
             st.selectbox("Remote Ratio", list(remote_ratio_map.keys()))
         ]
 
-    # ------------------ RESUME UPLOAD ------------------
+    # RESUME UPLOAD
     with col2:
         st.markdown("<div class='section-header'>📄 Upload Resume</div>", unsafe_allow_html=True)
         uploaded_file = st.file_uploader("Upload Resume (PDF)", type=["pdf"])
@@ -176,7 +170,7 @@ with tab1:
 
     company_ok = bool(company_location.strip())
     industry_ok = bool(industry.strip())
-    # ------------------ PREDICT BUTTON (SAFE) ------------------
+    #PREDICT BUTTON (SAFE)
     if not st.session_state.resume_ready:
         st.info("📄 Upload a resume,company country, industry to enable salary prediction.")
 
@@ -209,13 +203,13 @@ with tab1:
                 unsafe_allow_html=True
             )
 
-# ===================================================================================
 # TAB 2 — CHATBOT (UNCHANGED)
-# ===================================================================================
 with tab2:
     st.markdown("<div class='big-title'>🤖 RAG AI Chatbot</div>", unsafe_allow_html=True)
 
-    embedding_function = GoogleGenerativeAIEmbeddings(model="models/text-embedding-004")
+    embedding_function = embedding_function = HuggingFaceEmbeddings(
+        model_name="sentence-transformers/all-MiniLM-L6-v2"
+    )
     llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0.2)
     chroma = Chroma(persist_directory="./chroma", collection_name="job_dataset",
                     embedding_function=embedding_function)
@@ -241,9 +235,9 @@ with tab2:
             f"<div class='chat-box {'user' if role=='You' else 'bot'}'><b>{role}:</b> {msg}</div>",
             unsafe_allow_html=True
         )
-# -----------------------------------------------------------------------------------
+
 # TAB 3 — GLOBAL TOP JOBS EXPLORER
-# -----------------------------------------------------------------------------------
+
 with tab3:
     st.markdown("<div class='big-title'>🌍 Highest Paying Jobs Explorer</div>", unsafe_allow_html=True)
 
@@ -259,7 +253,7 @@ with tab3:
         "Switzerland": {"lat": 46.8182, "lon": 8.2275, "scope": "europe"}
     }
 
-    # ------------------- Filters -------------------
+    #- Filters-
     c1, c2 = st.columns(2)
 
     with c1:
@@ -270,7 +264,7 @@ with tab3:
         job_list = ["All Jobs"] + sorted(df["job_title"].dropna().unique().tolist())
         selected_job = st.selectbox("Select Job Title", job_list)
 
-    # ------------------- Filter Logic -------------------
+    #- Filter Logic-
     filtered_df = df.copy()
 
     if selected_country != "World":
@@ -281,7 +275,7 @@ with tab3:
 
     top_jobs = filtered_df.sort_values("salary_usd", ascending=False).head(top_n)
 
-    # ------------------- Map Visualization -------------------
+    #- Map Visualization-
     if not top_jobs.empty:
         map_df = top_jobs.copy()
 
@@ -334,7 +328,7 @@ with tab3:
 
             st.plotly_chart(fig, use_container_width=True)
 
-        # ------------------- Ranked Table -------------------
+        #- Ranked Table-
         st.markdown("### 📋 Ranked Results")
 
         st.dataframe(
